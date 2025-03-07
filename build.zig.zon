@@ -1,0 +1,13 @@
+.{
+    .name = "z2n",
+    .version = "1.5.14",
+
+    .dependencies = .{},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "LICENSE",
+        "README.md",
+    },
+}
