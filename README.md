@@ -6,9 +6,9 @@ This is an implementation of `SecureSocket`, a wrapper for the Tardy `Socket` ty
 - [s2n-tls](https://github.com/aws/s2n-tls): An implementation of SSL/TLS protocols by AWS.
 
 ## Installing
-Compatible Zig Version: `0.13.0`
+Compatible Zig Version: `0.14.0`
 
-Compatible [tardy](https://github.com/tardy-org/tardy) Version: `95239a7d9547161869f365bd6cd3f0255b37c49b`
+Compatible [tardy](https://github.com/tardy-org/tardy) Version: `019a81d00efc01157b9c67c357e53fcf75e48e6e`
 
 Latest Release: `0.0.0`
 ```

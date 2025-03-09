@@ -1,5 +1,6 @@
 .{
-    .name = "s2n-tls",
+    .name = .s2n_tls,
+    .fingerprint = 0xef8ea117dce4699f,
     .version = "1.5.14",
 
     .dependencies = .{
@@ -8,8 +9,8 @@
             .hash = "1220e6f5989d006913e19cfd10e65f9bdbbe3680a1020d10a010c2f427c15b6296f7",
         },
         .openssl = .{
-            .url = "git+https://github.com/allyourcodebase/openssl?ref=3.3.1-1#cfb071de062624d8acbfad4c995e8092f4f6bc7a",
-            .hash = "12207c40cefa38fe90e4230dfba2e5c76b37e1ee36602512cad8ff0501f892002a65",
+            .url = "git+https://github.com/allyourcodebase/openssl#f348124c5382bcc377f1b3277357cbf2ed2fb8db",
+            .hash = "openssl-3.3.1-2-TC9C3Se3ZACF5WO_CjoD7Bt_X94oCsAAbbwhOp1rTZBe",
         },
     },
     .paths = .{

@@ -1,11 +1,12 @@
 .{
-    .name = "secsock",
+    .name = .secsock,
+    .fingerprint = 0x68f68567adae4aa7,
     .version = "0.0.0",
 
     .dependencies = .{
         .tardy = .{
-            .url = "git+https://github.com/tardy-org/tardy#95239a7d9547161869f365bd6cd3f0255b37c49b",
-            .hash = "1220dfee39cf3cdb58b3d5f3001078297f02997b617990da84bdfdc506b46ece56ab",
+            .url = "git+https://github.com/tardy-org/tardy#019a81d00efc01157b9c67c357e53fcf75e48e6e",
+            .hash = "tardy-0.3.0-69wrgmjQAwBCaEWR3cY_3kcYM8_NJCgjTJn_C4R3_ZAj",
         },
         .s2n_tls = .{ .path = "vendor/s2n-tls" },
     },

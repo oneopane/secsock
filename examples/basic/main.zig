@@ -20,13 +20,13 @@ pub fn main() !void {
     try s2n.add_cert_chain(@embedFile("cert.pem"), @embedFile("key.pem"));
 
     try tardy.entry(&s2n, struct {
-        fn entry(rt: *Runtime, s: *const secsock.s2n) !void {
+        fn entry(rt: *Runtime, s: *secsock.s2n) !void {
             try rt.spawn(.{ rt, s }, echo_frame, 1024 * 1024 * 16);
         }
     }.entry);
 }
 
-fn echo_frame(rt: *Runtime, s2n: *const secsock.s2n) !void {
+fn echo_frame(rt: *Runtime, s2n: *secsock.s2n) !void {
     const socket = try Socket.init(.{ .tcp = .{ .host = "127.0.0.1", .port = 9862 } });
     defer socket.close_blocking();
     try socket.bind();
