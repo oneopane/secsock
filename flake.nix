@@ -1,5 +1,5 @@
 {
-  description = "TLS for the Tardy Runtime";
+  description = "Async TLS for the Tardy Runtime";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/release-24.11";
