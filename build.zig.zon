@@ -3,7 +3,10 @@
     .version = "0.0.0",
 
     .dependencies = .{
-        .tardy = .{ .path = "../tardy" },
+        .tardy = .{
+            .url = "git+https://github.com/tardy-org/tardy#ef40de9e16c300d883a3e9dade648a6d1cff209d",
+            .hash = "1220d0b91f07fa5b1f4030020ee437ec3e95bbfa07db37ea5e64444d7951a2011133",
+        },
         .s2n_tls = .{ .path = "vendor/s2n-tls" },
     },
     .paths = .{
