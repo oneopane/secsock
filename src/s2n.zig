@@ -20,7 +20,7 @@ pub const s2n = struct {
     const CallbackContext = struct { socket: Socket, runtime: ?*Runtime };
     const VtableContext = struct {
         allocator: std.mem.Allocator,
-        s2n: *const s2n,
+        s2n: *s2n,
         conn: *c.s2n_connection,
         cb_ctx: *CallbackContext,
     };
@@ -28,6 +28,8 @@ pub const s2n = struct {
     allocator: std.mem.Allocator,
     config: *c.s2n_config,
     cert: ?*c.s2n_cert_chain_and_key,
+    // TODO: This needs to go.
+    lock: std.Thread.Mutex = .{},
 
     fn handle_error(state: []const u8, rc: c_int) !void {
         if (rc < 0) {
@@ -76,7 +78,10 @@ pub const s2n = struct {
     }
 
     pub const SocketMode = enum { client, server };
-    pub fn to_secure_socket(self: s2n, socket: Socket, mode: SocketMode) !SecureSocket {
+    pub fn to_secure_socket(self: *s2n, socket: Socket, mode: SocketMode) !SecureSocket {
+        self.lock.lock();
+        defer self.lock.unlock();
+
         const conn = c.s2n_connection_new(switch (mode) {
             .client => c.S2N_CLIENT,
             .server => c.S2N_SERVER,
@@ -144,7 +149,7 @@ pub const s2n = struct {
         try handle_error("setting send cb", set_send_cb_rc);
 
         const vtable_ctx = try self.allocator.create(VtableContext);
-        vtable_ctx.* = .{ .allocator = self.allocator, .s2n = &self, .conn = conn.?, .cb_ctx = cb_ctx };
+        vtable_ctx.* = .{ .allocator = self.allocator, .s2n = self, .conn = conn.?, .cb_ctx = cb_ctx };
 
         return SecureSocket{
             .socket = socket,
