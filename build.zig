@@ -14,7 +14,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     }).artifact("s2n");
 
-    const lib = b.addModule("tls", .{
+    const lib = b.addModule("secsock", .{
         .root_source_file = b.path("src/lib.zig"),
         .target = target,
         .optimize = optimize,
@@ -47,7 +47,7 @@ fn add_example(
     }
 
     example.root_module.addImport("tardy", tardy_module);
-    example.root_module.addImport("tls", tls_module);
+    example.root_module.addImport("secsock", tls_module);
     const install_artifact = b.addInstallArtifact(example, .{});
     b.getInstallStep().dependOn(&install_artifact.step);
 

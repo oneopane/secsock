@@ -104,7 +104,10 @@ pub const s2n = struct {
                 const result = sock.recv(runtime, buf[0..len]) catch |e| switch (e) {
                     error.Closed => return 0,
                     // TODO: Properly handle errors.
-                    else => return -1,
+                    else => {
+                        log.err("error on recv: {s}", .{@errorName(e)});
+                        return c.S2N_FAILURE;
+                    },
                 };
 
                 return @intCast(result);
@@ -119,9 +122,15 @@ pub const s2n = struct {
                 const runtime = ctx.runtime;
 
                 const result = sock.send(runtime, buf[0..len]) catch |e| switch (e) {
-                    error.Closed => return -1,
+                    error.Closed => {
+                        c.s2n_errno_location().* = c.S2N_ERR_T_CLOSED;
+                        return c.S2N_FAILURE;
+                    },
                     // TODO: Properly handle errors.
-                    else => return -2,
+                    else => {
+                        log.err("error on send: {s}", .{@errorName(e)});
+                        return c.S2N_FAILURE;
+                    },
                 };
 
                 return @intCast(result);
@@ -194,8 +203,15 @@ pub const s2n = struct {
                         const ctx: *VtableContext = @ptrCast(@alignCast(i));
                         var blocked_status: c.s2n_blocked_status = undefined;
                         const res = c.s2n_recv(ctx.conn, buf.ptr, @intCast(buf.len), &blocked_status);
-                        if (res == 0) return error.Closed;
-                        if (res < -1) return error.FailedRecv;
+                        log.debug("res value on recv: {d}", .{res});
+                        if (res < 0) {
+                            defer c.s2n_errno_location().* = c.S2N_ERR_T_OK;
+                            switch (c.s2n_error_get_type(c.s2n_errno)) {
+                                c.S2N_ERR_T_CLOSED => return error.Closed,
+                                else => return error.FailedRecv,
+                            }
+                        }
+
                         return @intCast(res);
                     }
                 }.recv,
@@ -204,8 +220,13 @@ pub const s2n = struct {
                         const ctx: *VtableContext = @ptrCast(@alignCast(i));
                         var blocked_status: c.s2n_blocked_status = undefined;
                         const res = c.s2n_send(ctx.conn, buf.ptr, @intCast(buf.len), &blocked_status);
-                        if (res == 0 or res == -1) return error.Closed;
-                        if (res < -1) return error.FailedSend;
+                        if (res < 0) {
+                            defer c.s2n_errno_location().* = c.S2N_ERR_T_OK;
+                            switch (c.s2n_error_get_type(c.s2n_errno)) {
+                                c.S2N_ERR_T_CLOSED => return error.Closed,
+                                else => return error.FailedSend,
+                            }
+                        }
                         return @intCast(res);
                     }
                 }.send,

@@ -5,7 +5,7 @@ const Timer = @import("tardy").Timer;
 const Socket = @import("tardy").Socket;
 const Runtime = @import("tardy").Runtime;
 
-const tls = @import("tls");
+const secsock = @import("secsock");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -15,18 +15,18 @@ pub fn main() !void {
     var tardy = try Tardy.init(allocator, .{ .threading = .single });
     defer tardy.deinit();
 
-    var s2n = try tls.s2n.init(allocator);
+    var s2n = try secsock.s2n.init(allocator);
     defer s2n.deinit();
     try s2n.add_cert_chain(@embedFile("cert.pem"), @embedFile("key.pem"));
 
     try tardy.entry(&s2n, struct {
-        fn entry(rt: *Runtime, s: *const tls.s2n) !void {
+        fn entry(rt: *Runtime, s: *const secsock.s2n) !void {
             try rt.spawn(.{ rt, s }, echo_frame, 1024 * 1024 * 16);
         }
     }.entry);
 }
 
-fn echo_frame(rt: *Runtime, s2n: *const tls.s2n) !void {
+fn echo_frame(rt: *Runtime, s2n: *const secsock.s2n) !void {
     const socket = try Socket.init(.{ .tcp = .{ .host = "127.0.0.1", .port = 9862 } });
     defer socket.close_blocking();
     try socket.bind();
@@ -40,10 +40,8 @@ fn echo_frame(rt: *Runtime, s2n: *const tls.s2n) !void {
     defer connected.socket.close_blocking();
 
     while (true) {
-        _ = connected.send(rt, "abcdef\n") catch |e| switch (e) {
-            error.Closed => break,
-            else => return e,
-        };
-        try Timer.delay(rt, .{ .seconds = 1 });
+        var buf: [1024]u8 = undefined;
+        const count = connected.recv(rt, &buf) catch |e| if (e == error.Closed) break else return e;
+        _ = connected.send(rt, buf[0..count]) catch |e| if (e == error.Closed) break else return e;
     }
 }

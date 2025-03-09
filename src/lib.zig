@@ -1,3 +1,5 @@
+//! Secure Sockets - TLS functionality for Tardy Sockets
+
 const std = @import("std");
 
 const tardy = @import("tardy");
