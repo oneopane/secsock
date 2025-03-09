@@ -7,7 +7,9 @@ This is an implementation of `SecureSocket`, a wrapper for the Tardy `Socket` ty
 
 ## Installing
 Latest Release: `0.0.0`
+
 Compatible Zig Version: `0.13.0`
+
 Compatible [tardy](https://github.com/tardy-org/tardy) Version: `ef40de9e16c300d883a3e9dade648a6d1cff209d` 
 ```
 zig fetch --save git+https://github.com/tardy-org/tls#v0.0.0
