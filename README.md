@@ -2,15 +2,15 @@
 
 This is an implementation of `SecureSocket`, a wrapper for the Tardy `Socket` type that provides TLS functionality.
 
-## Supported TLS Backends:
+## Supported TLS Backends
 - [s2n-tls](https://github.com/aws/s2n-tls): An implementation of SSL/TLS protocols by AWS.
 
 ## Installing
-Latest Release: `0.0.0`
-
 Compatible Zig Version: `0.13.0`
 
-Compatible [tardy](https://github.com/tardy-org/tardy) Version: `ef40de9e16c300d883a3e9dade648a6d1cff209d` 
+Compatible [tardy](https://github.com/tardy-org/tardy) Version: `95239a7d9547161869f365bd6cd3f0255b37c49b`
+
+Latest Release: `0.0.0`
 ```
 zig fetch --save git+https://github.com/tardy-org/tls#v0.0.0
 ```
