@@ -32,7 +32,7 @@ fn add_example(
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.Mode,
     tardy_module: *std.Build.Module,
-    tls_module: *std.Build.Module,
+    secsock_module: *std.Build.Module,
 ) void {
     const example = b.addExecutable(.{
         .name = b.fmt("{s}", .{name}),
@@ -47,7 +47,7 @@ fn add_example(
     }
 
     example.root_module.addImport("tardy", tardy_module);
-    example.root_module.addImport("secsock", tls_module);
+    example.root_module.addImport("secsock", secsock_module);
     const install_artifact = b.addInstallArtifact(example, .{});
     b.getInstallStep().dependOn(&install_artifact.step);
 
