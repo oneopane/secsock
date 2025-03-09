@@ -1,8 +1,11 @@
 .{
-    .name = "z2n",
-    .version = "1.5.14",
+    .name = "tls",
+    .version = "0.0.0",
 
-    .dependencies = .{},
+    .dependencies = .{
+        .tardy = .{ .path = "../tardy" },
+        .s2n_tls = .{ .path = "vendor/s2n-tls" },
+    },
     .paths = .{
         "build.zig",
         "build.zig.zon",

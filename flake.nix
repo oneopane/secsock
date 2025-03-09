@@ -1,5 +1,5 @@
 {
-  description = "Zig bindings for s2n-tls, an implementation of the TLS/SSL protocols ";
+  description = "TLS for the Tardy Runtime";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/release-24.11";
@@ -26,6 +26,7 @@
           withZls = true;
 
           extraPackages = with pkgs; [
+            s2n-tls
             openssl
           ];
         };

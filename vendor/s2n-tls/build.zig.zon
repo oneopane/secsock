@@ -3,9 +3,13 @@
     .version = "1.5.14",
 
     .dependencies = .{
-        .s2n = .{
+        .s2n_tls = .{
             .url = "https://github.com/aws/s2n-tls/archive/refs/tags/v1.5.14.tar.gz",
             .hash = "1220e6f5989d006913e19cfd10e65f9bdbbe3680a1020d10a010c2f427c15b6296f7",
+        },
+        .openssl = .{
+            .url = "git+https://github.com/allyourcodebase/openssl?ref=3.3.1-1#cfb071de062624d8acbfad4c995e8092f4f6bc7a",
+            .hash = "12207c40cefa38fe90e4230dfba2e5c76b37e1ee36602512cad8ff0501f892002a65",
         },
     },
     .paths = .{

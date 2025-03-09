@@ -4,7 +4,15 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const upstream = b.dependency("s2n", .{});
+    const openssl = b.dependency("openssl", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const upstream = b.dependency("s2n_tls", .{
+        .target = target,
+        .optimize = optimize,
+    });
 
     const lib = b.addStaticLibrary(.{
         .name = "s2n",
@@ -13,7 +21,7 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
     });
 
-    lib.linkSystemLibrary("ssl");
+    lib.linkLibrary(openssl.artifact("openssl"));
 
     lib.addCSourceFiles(.{
         .root = upstream.path("utils/"),
@@ -39,6 +47,11 @@ pub fn build(b: *std.Build) void {
         .root = upstream.path("tls/"),
         .flags = &.{ "-include", upstream.path("utils/s2n_prelude.h").getPath(b) },
         .files = tls_src,
+    });
+
+    lib.addCSourceFiles(.{
+        .root = upstream.path("tls/extensions/"),
+        .files = tls_extensions_src,
     });
 
     lib.addIncludePath(upstream.path("./"));
@@ -193,4 +206,50 @@ const tls_src = &.{
     "s2n_tls13_secrets.c",
     "s2n_tls.c",
     "s2n_x509_validator.c",
+};
+
+const tls_extensions_src = &.{
+    "s2n_cert_authorities.c",
+    "s2n_cert_status.c",
+    "s2n_cert_status_response.c",
+    "s2n_client_alpn.c",
+    "s2n_client_cert_status_request.c",
+    "s2n_client_cookie.c",
+    "s2n_client_early_data_indication.c",
+    "s2n_client_ems.c",
+    "s2n_client_key_share.c",
+    "s2n_client_max_frag_len.c",
+    "s2n_client_pq_kem.c",
+    "s2n_client_psk.c",
+    "s2n_client_renegotiation_info.c",
+    "s2n_client_sct_list.c",
+    "s2n_client_server_name.c",
+    "s2n_client_session_ticket.c",
+    "s2n_client_signature_algorithms.c",
+    "s2n_client_supported_groups.c",
+    "s2n_client_supported_versions.c",
+    "s2n_ec_point_format.c",
+    "s2n_extension_list.c",
+    "s2n_extension_type.c",
+    "s2n_extension_type_lists.c",
+    "s2n_key_share.c",
+    "s2n_npn.c",
+    "s2n_nst_early_data_indication.c",
+    "s2n_psk_key_exchange_modes.c",
+    "s2n_quic_transport_params.c",
+    "s2n_server_alpn.c",
+    "s2n_server_cert_status_request.c",
+    "s2n_server_cookie.c",
+    "s2n_server_early_data_indication.c",
+    "s2n_server_ems.c",
+    "s2n_server_key_share.c",
+    "s2n_server_max_fragment_length.c",
+    "s2n_server_psk.c",
+    "s2n_server_renegotiation_info.c",
+    "s2n_server_sct_list.c",
+    "s2n_server_server_name.c",
+    "s2n_server_session_ticket.c",
+    "s2n_server_signature_algorithms.c",
+    "s2n_server_supported_versions.c",
+    "s2n_supported_versions.c",
 };
