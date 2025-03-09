@@ -169,6 +169,8 @@ pub const s2n = struct {
                         const sock = try s.accept(r);
 
                         const child = try ctx.s2n.to_secure_socket(sock, .server);
+                        // if we fail, we want to clean this connection up.
+                        errdefer child.deinit();
                         const new_ctx: *VtableContext = @ptrCast(@alignCast(child.vtable.inner));
                         new_ctx.cb_ctx.runtime = r;
 
