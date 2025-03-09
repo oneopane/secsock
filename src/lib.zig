@@ -9,6 +9,39 @@ const Socket = tardy.Socket;
 pub const s2n = @import("s2n.zig").s2n;
 
 pub const SecureSocket = struct {
+    pub fn unsecured(socket: Socket) SecureSocket {
+        return SecureSocket{
+            .socket = socket,
+            .vtable = .{
+                .inner = @ptrFromInt(1),
+                .deinit = struct {
+                    fn deinit(_: *anyopaque) void {}
+                }.deinit,
+                .accept = struct {
+                    fn accept(s: Socket, r: *Runtime, _: *anyopaque) !SecureSocket {
+                        const child = try s.accept(r);
+                        return SecureSocket.unsecured(child);
+                    }
+                }.accept,
+                .connect = struct {
+                    fn connect(s: Socket, r: *Runtime, _: *anyopaque) !void {
+                        try s.connect(r);
+                    }
+                }.connect,
+                .recv = struct {
+                    fn recv(s: Socket, r: *Runtime, _: *anyopaque, buf: []u8) !usize {
+                        return try s.recv(r, buf);
+                    }
+                }.recv,
+                .send = struct {
+                    fn send(s: Socket, r: *Runtime, _: *anyopaque, buf: []const u8) !usize {
+                        return try s.send(r, buf);
+                    }
+                }.send,
+            },
+        };
+    }
+
     const VTable = struct {
         inner: *anyopaque,
 
@@ -17,8 +50,8 @@ pub const SecureSocket = struct {
         accept: *const fn (Socket, *Runtime, *anyopaque) anyerror!SecureSocket,
         connect: *const fn (Socket, *Runtime, *anyopaque) anyerror!void,
 
-        recv: *const fn (*Runtime, *anyopaque, []u8) anyerror!usize,
-        send: *const fn (*Runtime, *anyopaque, []const u8) anyerror!usize,
+        recv: *const fn (Socket, *Runtime, *anyopaque, []u8) anyerror!usize,
+        send: *const fn (Socket, *Runtime, *anyopaque, []const u8) anyerror!usize,
     };
 
     socket: Socket,
@@ -37,10 +70,22 @@ pub const SecureSocket = struct {
     }
 
     pub fn recv(self: *const SecureSocket, rt: *Runtime, buffer: []u8) !usize {
-        return try self.vtable.recv(rt, self.vtable.inner, buffer);
+        return try self.vtable.recv(self.socket, rt, self.vtable.inner, buffer);
     }
 
     pub fn send(self: *const SecureSocket, rt: *Runtime, buffer: []const u8) !usize {
-        return try self.vtable.send(rt, self.vtable.inner, buffer);
+        return try self.vtable.send(self.socket, rt, self.vtable.inner, buffer);
+    }
+
+    pub fn send_all(self: *const SecureSocket, rt: *Runtime, buffer: []const u8) !usize {
+        var count: usize = 0;
+        while (count != buffer.len) {
+            count += self.send(rt, buffer[count..]) catch |e| switch (e) {
+                error.Closed => return count,
+                else => return e,
+            };
+        }
+
+        return count;
     }
 };

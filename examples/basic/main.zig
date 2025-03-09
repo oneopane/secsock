@@ -32,7 +32,7 @@ fn echo_frame(rt: *Runtime, s2n: *const secsock.s2n) !void {
     try socket.bind();
     try socket.listen(128);
 
-    const secure = try s2n.to_secure_socket(rt, socket);
+    const secure = try s2n.to_secure_socket(socket, .server);
     defer secure.deinit();
 
     const connected = try secure.accept(rt);

@@ -17,7 +17,7 @@ var deinitalized: bool = false;
 /// s2n-tls is an implementation of the TLS/SSL protocols by Amazon (AWS).
 /// https://github.com/aws/s2n-tls
 pub const s2n = struct {
-    const CallbackContext = struct { socket: Socket, runtime: *Runtime };
+    const CallbackContext = struct { socket: Socket, runtime: ?*Runtime };
     const VtableContext = struct {
         allocator: std.mem.Allocator,
         s2n: *const s2n,
@@ -49,6 +49,7 @@ pub const s2n = struct {
         try handle_error("s2n_init", init_rc);
 
         const config = c.s2n_config_new();
+
         return .{ .allocator = allocator, .config = config.?, .cert = null };
     }
 
@@ -74,8 +75,12 @@ pub const s2n = struct {
         _ = c.s2n_cleanup();
     }
 
-    pub fn to_secure_socket(self: s2n, rt: *Runtime, socket: Socket) !SecureSocket {
-        const conn = c.s2n_connection_new(c.S2N_FIPS_MODE_DISABLED);
+    pub const SocketMode = enum { client, server };
+    pub fn to_secure_socket(self: s2n, socket: Socket, mode: SocketMode) !SecureSocket {
+        const conn = c.s2n_connection_new(switch (mode) {
+            .client => c.S2N_CLIENT,
+            .server => c.S2N_SERVER,
+        });
         if (conn == null) return error.NewConnectionFailed;
         errdefer _ = c.s2n_connection_free(conn);
 
@@ -87,7 +92,7 @@ pub const s2n = struct {
 
         const cb_ctx = try self.allocator.create(CallbackContext);
         errdefer self.allocator.destroy(cb_ctx);
-        cb_ctx.* = .{ .socket = socket, .runtime = rt };
+        cb_ctx.* = .{ .socket = socket, .runtime = null };
 
         const set_recv_ctx_rc = c.s2n_connection_set_recv_ctx(conn, @ptrCast(cb_ctx));
         try handle_error("setting recv cb ctx", set_recv_ctx_rc);
@@ -101,7 +106,7 @@ pub const s2n = struct {
                 const sock = ctx.socket;
                 const runtime = ctx.runtime;
 
-                const result = sock.recv(runtime, buf[0..len]) catch |e| switch (e) {
+                const result = sock.recv(runtime.?, buf[0..len]) catch |e| switch (e) {
                     error.Closed => return 0,
                     // TODO: Properly handle errors.
                     else => {
@@ -121,7 +126,7 @@ pub const s2n = struct {
                 const sock = ctx.socket;
                 const runtime = ctx.runtime;
 
-                const result = sock.send(runtime, buf[0..len]) catch |e| switch (e) {
+                const result = sock.send(runtime.?, buf[0..len]) catch |e| switch (e) {
                     error.Closed => {
                         c.s2n_errno_location().* = c.S2N_ERR_T_CLOSED;
                         return c.S2N_FAILURE;
@@ -160,20 +165,19 @@ pub const s2n = struct {
                 .accept = struct {
                     fn accept(s: Socket, r: *Runtime, i: *anyopaque) !SecureSocket {
                         const ctx: *VtableContext = @ptrCast(@alignCast(i));
+                        ctx.cb_ctx.runtime = r;
                         const sock = try s.accept(r);
 
-                        const child = try ctx.s2n.to_secure_socket(r, sock);
+                        const child = try ctx.s2n.to_secure_socket(sock, .server);
                         const new_ctx: *VtableContext = @ptrCast(@alignCast(child.vtable.inner));
+                        new_ctx.cb_ctx.runtime = r;
 
-                        while (true) {
-                            var blocked_status: c.s2n_blocked_status = undefined;
-                            const negotiate_rc = c.s2n_negotiate(new_ctx.conn, &blocked_status);
-                            switch (negotiate_rc) {
-                                c.S2N_SUCCESS => break,
-                                else => switch (c.s2n_error_get_type(negotiate_rc)) {
-                                    c.S2N_ERR_T_BLOCKED => continue,
-                                    else => try handle_error("accept negotiating connection", negotiate_rc),
-                                },
+                        var blocked_status: c.s2n_blocked_status = c.S2N_NOT_BLOCKED;
+                        while (c.s2n_negotiate(new_ctx.conn, &blocked_status) != c.S2N_SUCCESS) {
+                            switch (c.s2n_error_get_type(c.s2n_errno)) {
+                                c.S2N_ERR_T_BLOCKED => continue,
+                                c.S2N_ERR_T_CLOSED => return error.Closed,
+                                else => try handle_error("accept negotiating connection", -1),
                             }
                         }
 
@@ -183,29 +187,27 @@ pub const s2n = struct {
                 .connect = struct {
                     fn connect(s: Socket, r: *Runtime, i: *anyopaque) !void {
                         const ctx: *VtableContext = @ptrCast(@alignCast(i));
+                        ctx.cb_ctx.runtime = r;
                         try s.connect(r);
 
-                        while (true) {
-                            var blocked_status: c.s2n_blocked_status = undefined;
-                            const negotiate_rc = c.s2n_negotiate(ctx.conn, &blocked_status);
-                            switch (negotiate_rc) {
-                                c.S2N_SUCCESS => break,
-                                else => switch (c.s2n_error_get_type(negotiate_rc)) {
-                                    c.S2N_ERR_T_BLOCKED => continue,
-                                    else => try handle_error("connect negotiating connection", negotiate_rc),
-                                },
+                        var blocked_status: c.s2n_blocked_status = c.S2N_NOT_BLOCKED;
+                        while (c.s2n_negotiate(ctx.conn, &blocked_status) != c.S2N_SUCCESS) {
+                            switch (c.s2n_error_get_type(c.s2n_errno)) {
+                                c.S2N_ERR_T_BLOCKED => continue,
+                                c.S2N_ERR_T_CLOSED => return error.Closed,
+                                else => try handle_error("connect negotiating connection", -1),
                             }
                         }
                     }
                 }.connect,
                 .recv = struct {
-                    fn recv(_: *Runtime, i: *anyopaque, buf: []u8) !usize {
+                    fn recv(_: Socket, r: *Runtime, i: *anyopaque, buf: []u8) !usize {
                         const ctx: *VtableContext = @ptrCast(@alignCast(i));
+                        ctx.cb_ctx.runtime = r;
                         var blocked_status: c.s2n_blocked_status = undefined;
+
                         const res = c.s2n_recv(ctx.conn, buf.ptr, @intCast(buf.len), &blocked_status);
-                        log.debug("res value on recv: {d}", .{res});
                         if (res < 0) {
-                            defer c.s2n_errno_location().* = c.S2N_ERR_T_OK;
                             switch (c.s2n_error_get_type(c.s2n_errno)) {
                                 c.S2N_ERR_T_CLOSED => return error.Closed,
                                 else => return error.FailedRecv,
@@ -216,12 +218,13 @@ pub const s2n = struct {
                     }
                 }.recv,
                 .send = struct {
-                    fn send(_: *Runtime, i: *anyopaque, buf: []const u8) !usize {
+                    fn send(_: Socket, r: *Runtime, i: *anyopaque, buf: []const u8) !usize {
                         const ctx: *VtableContext = @ptrCast(@alignCast(i));
+                        ctx.cb_ctx.runtime = r;
                         var blocked_status: c.s2n_blocked_status = undefined;
+
                         const res = c.s2n_send(ctx.conn, buf.ptr, @intCast(buf.len), &blocked_status);
                         if (res < 0) {
-                            defer c.s2n_errno_location().* = c.S2N_ERR_T_OK;
                             switch (c.s2n_error_get_type(c.s2n_errno)) {
                                 c.S2N_ERR_T_CLOSED => return error.Closed,
                                 else => return error.FailedSend,
