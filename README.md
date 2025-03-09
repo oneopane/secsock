@@ -12,17 +12,17 @@ Compatible [tardy](https://github.com/tardy-org/tardy) Version: `95239a7d9547161
 
 Latest Release: `0.0.0`
 ```
-zig fetch --save git+https://github.com/tardy-org/tls#v0.0.0
+zig fetch --save git+https://github.com/tardy-org/secsock#v0.0.0
 ```
 
 You can then add the dependency in your `build.zig` file:
 ```zig
-const tls = b.dependency("tls", .{
+const secsock = b.dependency("secsock", .{
     .target = target,
     .optimize = optimize,
-}).module("tls");
+}).module("secsock");
 
-exe.root_module.addImport(tls);
+exe.root_module.addImport(secsock);
 ```
 
 ## Contribution
@@ -38,8 +38,8 @@ sh <(curl -L https://nixos.org/nix/install) --daemon
 ### Getting Started
 1. Clone this repository:
 ```bash
-git clone https://github.com/tardy-org/tls.git
-cd tls
+git clone https://github.com/tardy-org/secsock.git
+cd secsock
 ```
 
 2. Enter the development environment:
