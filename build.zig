@@ -14,6 +14,13 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     }).artifact("s2n");
 
+    const bearssl = b.dependency("bearssl", .{
+        .target = target,
+        .optimize = optimize,
+        .BR_LE_UNALIGNED = false,
+        .BR_BE_UNALIGNED = false,
+    }).artifact("bearssl");
+
     const lib = b.addModule("secsock", .{
         .root_source_file = b.path("src/lib.zig"),
         .target = target,
@@ -21,9 +28,11 @@ pub fn build(b: *std.Build) void {
     });
 
     lib.linkLibrary(s2n);
+    lib.linkLibrary(bearssl);
     lib.addImport("tardy", tardy);
 
-    add_example(b, "basic", target, optimize, tardy, lib);
+    add_example(b, "s2n", target, optimize, tardy, lib);
+    add_example(b, "bearssl", target, optimize, tardy, lib);
 }
 
 fn add_example(

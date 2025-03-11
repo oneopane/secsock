@@ -9,6 +9,7 @@
             .hash = "tardy-0.3.0-69wrgmjQAwBCaEWR3cY_3kcYM8_NJCgjTJn_C4R3_ZAj",
         },
         .s2n_tls = .{ .path = "vendor/s2n-tls" },
+        .bearssl = .{ .path = "vendor/bearssl" },
     },
     .paths = .{
         "build.zig",

@@ -77,8 +77,7 @@ pub const s2n = struct {
         _ = c.s2n_cleanup();
     }
 
-    pub const SocketMode = enum { client, server };
-    pub fn to_secure_socket(self: *s2n, socket: Socket, mode: SocketMode) !SecureSocket {
+    pub fn to_secure_socket(self: *s2n, socket: Socket, mode: SecureSocket.Mode) !SecureSocket {
         self.lock.lock();
         defer self.lock.unlock();
 
@@ -172,6 +171,7 @@ pub const s2n = struct {
                         const ctx: *VtableContext = @ptrCast(@alignCast(i));
                         ctx.cb_ctx.runtime = r;
                         const sock = try s.accept(r);
+                        errdefer sock.close_blocking();
 
                         const child = try ctx.s2n.to_secure_socket(sock, .server);
                         // if we fail, we want to clean this connection up.

@@ -4,10 +4,10 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const openssl = b.dependency("openssl", .{
-        .target = target,
-        .optimize = optimize,
-    });
+    //const openssl = b.dependency("openssl", .{
+    //    .target = target,
+    //    .optimize = optimize,
+    //});
 
     const upstream = b.dependency("s2n_tls", .{
         .target = target,
@@ -21,7 +21,9 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
     });
 
-    lib.linkLibrary(openssl.artifact("openssl"));
+    //lib.linkLibrary(openssl.artifact("openssl"));
+    lib.linkSystemLibrary("ssl");
+    lib.linkSystemLibrary("crypto");
 
     lib.addCSourceFiles(.{
         .root = upstream.path("utils/"),

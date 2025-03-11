@@ -7,8 +7,11 @@ const Runtime = tardy.Runtime;
 const Socket = tardy.Socket;
 
 pub const s2n = @import("s2n.zig").s2n;
+pub const BearSSL = @import("bearssl/lib.zig").BearSSL;
 
 pub const SecureSocket = struct {
+    pub const Mode = enum { client, server };
+
     pub fn unsecured(socket: Socket) SecureSocket {
         return SecureSocket{
             .socket = socket,
