@@ -179,31 +179,33 @@ pub const BearSSL = struct {
                 const p = try allocator.dupe(u8, key.p[0..key.plen]);
                 errdefer allocator.free(p);
 
-                const q = try allocator.dupe(u8, key.p[0..key.plen]);
+                const q = try allocator.dupe(u8, key.q[0..key.qlen]);
                 errdefer allocator.free(q);
 
-                const dp = try allocator.dupe(u8, key.p[0..key.plen]);
+                const dp = try allocator.dupe(u8, key.dp[0..key.dplen]);
                 errdefer allocator.free(dp);
 
-                const dq = try allocator.dupe(u8, key.p[0..key.plen]);
+                const dq = try allocator.dupe(u8, key.dq[0..key.dqlen]);
                 errdefer allocator.free(dq);
 
-                const iq = try allocator.dupe(u8, key.p[0..key.plen]);
+                const iq = try allocator.dupe(u8, key.iq[0..key.iqlen]);
                 errdefer allocator.free(iq);
 
-                break :key .{ .rsa = .{
-                    .p = p.ptr,
-                    .plen = key.plen,
-                    .q = q.ptr,
-                    .qlen = key.qlen,
-                    .dp = dp.ptr,
-                    .dplen = key.dplen,
-                    .dq = dq.ptr,
-                    .dqlen = key.dqlen,
-                    .iq = iq.ptr,
-                    .iqlen = key.iqlen,
-                    .n_bitlen = key.n_bitlen,
-                } };
+                break :key .{
+                    .rsa = .{
+                        .p = p.ptr,
+                        .plen = key.plen,
+                        .q = q.ptr,
+                        .qlen = key.qlen,
+                        .dp = dp.ptr,
+                        .dplen = key.dplen,
+                        .dq = dq.ptr,
+                        .dqlen = key.dqlen,
+                        .iq = iq.ptr,
+                        .iqlen = key.iqlen,
+                        .n_bitlen = key.n_bitlen,
+                    },
+                };
             },
             c.BR_KEYTYPE_EC => key: {
                 const key = c.br_skey_decoder_get_ec(&sk_ctx)[0];

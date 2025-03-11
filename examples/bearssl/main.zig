@@ -19,11 +19,18 @@ pub fn main() !void {
     var bearssl = secsock.BearSSL.init(allocator);
     defer bearssl.deinit();
 
+    //try bearssl.add_cert_chain(
+    //    "CERTIFICATE",
+    //    @embedFile("certs/cert.pem"),
+    //    "EC PRIVATE KEY",
+    //    @embedFile("certs/key.pem"),
+    //);
+
     try bearssl.add_cert_chain(
         "CERTIFICATE",
-        @embedFile("certs/cert.pem"),
-        "EC PRIVATE KEY",
-        @embedFile("certs/key.pem"),
+        @embedFile("certs/rsa_cert.pem"),
+        "PRIVATE KEY",
+        @embedFile("certs/rsa_key.pem"),
     );
 
     const socket = try Socket.init(.{ .tcp = .{ .host = "127.0.0.1", .port = 9862 } });

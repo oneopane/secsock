@@ -47,12 +47,9 @@ pub const SecureSocket = struct {
 
     const VTable = struct {
         inner: *anyopaque,
-
         deinit: *const fn (*anyopaque) void,
-
         accept: *const fn (Socket, *Runtime, *anyopaque) anyerror!SecureSocket,
         connect: *const fn (Socket, *Runtime, *anyopaque) anyerror!void,
-
         recv: *const fn (Socket, *Runtime, *anyopaque, []u8) anyerror!usize,
         send: *const fn (Socket, *Runtime, *anyopaque, []const u8) anyerror!usize,
     };

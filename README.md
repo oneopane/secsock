@@ -3,7 +3,8 @@
 This is an implementation of `SecureSocket`, a wrapper for the Tardy `Socket` type that provides TLS functionality.
 
 ## Supported TLS Backends
-- [s2n-tls](https://github.com/aws/s2n-tls): An implementation of SSL/TLS protocols by AWS.
+- [BearSSL](https://bearssl.org/gitweb/?p=BearSSL;a=summary): An implementation of the SSL/TLS protocol (RFC 5346) written in C.
+- [s2n-tls](https://github.com/aws/s2n-tls): An implementation of SSL/TLS protocols by AWS. (Experimental)
 
 ## Installing
 Compatible Zig Version: `0.14.0`

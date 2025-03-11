@@ -4,11 +4,6 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    //const openssl = b.dependency("openssl", .{
-    //    .target = target,
-    //    .optimize = optimize,
-    //});
-
     const upstream = b.dependency("s2n_tls", .{
         .target = target,
         .optimize = optimize,
@@ -21,9 +16,18 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
     });
 
-    //lib.linkLibrary(openssl.artifact("openssl"));
-    lib.linkSystemLibrary("ssl");
-    lib.linkSystemLibrary("crypto");
+    if (lib.rootModuleTarget().os.tag == .linux) {
+        const openssl = b.dependency("openssl", .{
+            .target = target,
+            .optimize = optimize,
+        });
+
+        lib.linkLibrary(openssl.artifact("openssl"));
+    } else {
+        std.debug.print("On non-Linux platforms, you must provide libssl and libcrypto installed on system.", .{});
+        lib.linkSystemLibrary("ssl");
+        lib.linkSystemLibrary("crypto");
+    }
 
     lib.addCSourceFiles(.{
         .root = upstream.path("utils/"),
