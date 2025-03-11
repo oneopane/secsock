@@ -6,7 +6,7 @@ const tardy = @import("tardy");
 const Runtime = tardy.Runtime;
 const Socket = tardy.Socket;
 
-pub const s2n = @import("s2n.zig").s2n;
+//pub const s2n = @import("s2n.zig").s2n;
 pub const BearSSL = @import("bearssl/lib.zig").BearSSL;
 
 pub const SecureSocket = struct {

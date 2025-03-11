@@ -9,11 +9,6 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     }).module("tardy");
 
-    const s2n = b.dependency("s2n_tls", .{
-        .target = target,
-        .optimize = optimize,
-    }).artifact("s2n");
-
     const bearssl = b.dependency("bearssl", .{
         .target = target,
         .optimize = optimize,
@@ -27,11 +22,10 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    lib.linkLibrary(s2n);
     lib.linkLibrary(bearssl);
     lib.addImport("tardy", tardy);
 
-    add_example(b, "s2n", target, optimize, tardy, lib);
+    // add_example(b, "s2n", target, optimize, tardy, lib);
     add_example(b, "bearssl", target, optimize, tardy, lib);
 }
 
