@@ -5,8 +5,8 @@
 
     .dependencies = .{
         .tardy = .{
-            .url = "git+https://github.com/tardy-org/tardy#019a81d00efc01157b9c67c357e53fcf75e48e6e",
-            .hash = "tardy-0.3.0-69wrgmjQAwBCaEWR3cY_3kcYM8_NJCgjTJn_C4R3_ZAj",
+            .url = "git+https://github.com/tardy-org/tardy?ref=v0.3.0#cd454060f3b6006368d53c05ab96cd16c73c34de",
+            .hash = "tardy-0.3.0-69wrgi7PAwDFhO7m0aXae6N15s2b28VIOrnRrSHHake6",
         },
         .bearssl = .{ .path = "vendor/bearssl" },
     },
