@@ -26,7 +26,6 @@
           withZls = true;
 
           extraPackages = with pkgs; [
-            s2n-tls
             openssl
           ];
         };

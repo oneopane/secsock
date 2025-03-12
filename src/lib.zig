@@ -6,8 +6,9 @@ const tardy = @import("tardy");
 const Runtime = tardy.Runtime;
 const Socket = tardy.Socket;
 
-//pub const s2n = @import("s2n.zig").s2n;
 pub const BearSSL = @import("bearssl/lib.zig").BearSSL;
+
+//pub const s2n = @import("s2n.zig").s2n;
 
 pub const SecureSocket = struct {
     pub const Mode = enum { client, server };
@@ -16,7 +17,7 @@ pub const SecureSocket = struct {
         return SecureSocket{
             .socket = socket,
             .vtable = .{
-                .inner = @ptrFromInt(1),
+                .inner = undefined,
                 .deinit = struct {
                     fn deinit(_: *anyopaque) void {}
                 }.deinit,

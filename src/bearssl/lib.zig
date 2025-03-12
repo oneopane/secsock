@@ -1,12 +1,13 @@
 const std = @import("std");
 const assert = std.debug.assert;
-const log = std.log.scoped(.bearssl);
 
 const tardy = @import("tardy");
 const Socket = tardy.Socket;
 const Runtime = tardy.Runtime;
 
 const SecureSocket = @import("../lib.zig").SecureSocket;
+
+const log = std.log.scoped(.bearssl);
 
 const c = @cImport({
     @cInclude("bearssl.h");
@@ -253,7 +254,7 @@ pub const BearSSL = struct {
 
     pub fn to_secure_socket(self: *BearSSL, socket: Socket, mode: SecureSocket.Mode) !SecureSocket {
         switch (mode) {
-            .client => unreachable,
+            .client => @panic("Client TLS not supported yet!"),
             .server => return @import("server.zig").to_secure_socket_server(self, socket),
         }
     }

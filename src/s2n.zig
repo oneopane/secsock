@@ -1,11 +1,12 @@
 const std = @import("std");
-const log = std.log.scoped(.s2n);
 
 const tardy = @import("tardy");
 const Socket = tardy.Socket;
 const Runtime = tardy.Runtime;
 
 const SecureSocket = @import("lib.zig").SecureSocket;
+
+const log = std.log.scoped(.s2n);
 
 const c = @cImport({
     @cInclude("s2n.h");

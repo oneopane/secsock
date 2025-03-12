@@ -132,12 +132,11 @@ pub fn to_secure_socket_server(self: *BearSSL, socket: Socket) !SecureSocket {
 
                     const result = c.br_sslio_read(&ctx.sslio_ctx, b.ptr, b.len);
                     if (result < 0) {
-                        const last_error_int = c.br_ssl_engine_last_error(&ctx.context.eng);
-                        const last_error = EngineStatus.convert(last_error_int);
+                        const last_error = EngineStatus.convert(c.br_ssl_engine_last_error(&ctx.context.eng));
                         switch (last_error) {
-                            .Ok, .InputOutput => return error.Closed,
+                            .InputOutput => return error.Closed,
                             else => {
-                                log.err("sslio recv failed: {s} | {d}", .{ @tagName(last_error), last_error_int });
+                                log.err("sslio recv failed: {s}", .{@tagName(last_error)});
                                 return error.TlsRecvFailed;
                             },
                         }
@@ -155,7 +154,7 @@ pub fn to_secure_socket_server(self: *BearSSL, socket: Socket) !SecureSocket {
                     if (write_result < 0) {
                         const last_error = EngineStatus.convert(c.br_ssl_engine_last_error(&ctx.context.eng));
                         switch (last_error) {
-                            .Ok, .InputOutput => return error.Closed,
+                            .InputOutput => return error.Closed,
                             else => {
                                 log.err("sslio send failed: {s}", .{@tagName(last_error)});
                                 return error.TlsSendFailed;
@@ -168,7 +167,7 @@ pub fn to_secure_socket_server(self: *BearSSL, socket: Socket) !SecureSocket {
                     if (flush_result < 0) {
                         const last_error = EngineStatus.convert(c.br_ssl_engine_last_error(&ctx.context.eng));
                         switch (last_error) {
-                            .Ok, .InputOutput => return error.Closed,
+                            .InputOutput => return error.Closed,
                             else => {
                                 log.err("sslio flush failed: {s}", .{@tagName(last_error)});
                                 return error.TlsSendFailed;
