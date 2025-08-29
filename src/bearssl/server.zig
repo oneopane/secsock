@@ -48,16 +48,16 @@ pub fn to_secure_socket_server(self: *BearSSL, socket: Socket) !SecureSocket {
     switch (self.pkey.?) {
         .rsa => |*inner| c.br_ssl_server_init_full_rsa(
             &context.context,
-            &self.x509.?,
+            @as([*c]const c.br_x509_certificate, @ptrCast(&self.x509.?)),
             1,
-            inner,
+            @as([*c]const c.br_rsa_private_key, @ptrCast(inner)),
         ),
         .ec => |*inner| c.br_ssl_server_init_full_ec(
             &context.context,
-            &self.x509.?,
+            @as([*c]const c.br_x509_certificate, @ptrCast(&self.x509.?)),
             1,
             @intCast(self.cert_signer_algo.?),
-            inner,
+            @as([*c]const c.br_ec_private_key, @ptrCast(inner)),
         ),
     }
 
