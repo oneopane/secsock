@@ -1,6 +1,20 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
+    // Ensure minimum Zig version
+    const required_zig = std.SemanticVersion{
+        .major = 0,
+        .minor = 15,
+        .patch = 1,
+    };
+    const current_zig = @import("builtin").zig_version;
+    if (current_zig.order(required_zig) == .lt) {
+        std.debug.panic(
+            "Zig version {any} is required, but version {any} is being used\n",
+            .{ required_zig, current_zig },
+        );
+    }
+
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
@@ -33,7 +47,7 @@ fn add_example(
     b: *std.Build,
     name: []const u8,
     target: std.Build.ResolvedTarget,
-    optimize: std.builtin.Mode,
+    optimize: std.builtin.OptimizeMode,
     tardy_module: *std.Build.Module,
     secsock_module: *std.Build.Module,
 ) void {
