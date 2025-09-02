@@ -201,7 +201,7 @@ pub fn build(b: *std.Build) !void {
         .target = target,
         .optimize = optimize,
     });
-    
+
     // Create a static library
     const bearssl = b.addLibrary(.{
         .name = "bearssl",
