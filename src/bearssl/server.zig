@@ -46,19 +46,27 @@ pub fn to_secure_socket_server(self: *BearSSL, socket: Socket) !SecureSocket {
     };
 
     switch (self.pkey.?) {
-        .rsa => |*inner| c.br_ssl_server_init_full_rsa(
-            &context.context,
-            @as([*c]const c.br_x509_certificate, @ptrCast(&self.x509.?)),
-            1,
-            @as([*c]const c.br_rsa_private_key, @ptrCast(inner)),
-        ),
-        .ec => |*inner| c.br_ssl_server_init_full_ec(
-            &context.context,
-            @as([*c]const c.br_x509_certificate, @ptrCast(&self.x509.?)),
-            1,
-            @intCast(self.cert_signer_algo.?),
-            @as([*c]const c.br_ec_private_key, @ptrCast(inner)),
-        ),
+        .rsa => |*inner| blk: {
+            const chain_ptr: [*c]const c.br_x509_certificate = @ptrCast(&self.x509.?);
+            const sk_ptr: [*c]const c.br_rsa_private_key = @ptrCast(inner);
+            break :blk c.br_ssl_server_init_full_rsa(
+                &context.context,
+                chain_ptr,
+                1,
+                sk_ptr,
+            );
+        },
+        .ec => |*inner| blk: {
+            const chain_ptr: [*c]const c.br_x509_certificate = @ptrCast(&self.x509.?);
+            const sk_ptr: [*c]const c.br_ec_private_key = @ptrCast(inner);
+            break :blk c.br_ssl_server_init_full_ec(
+                &context.context,
+                chain_ptr,
+                1,
+                @intCast(self.cert_signer_algo.?),
+                sk_ptr,
+            );
+        },
     }
 
     c.br_ssl_engine_set_buffer(&context.context.eng, io_buf.ptr, io_buf.len, 1);
@@ -181,3 +189,4 @@ pub fn to_secure_socket_server(self: *BearSSL, socket: Socket) !SecureSocket {
         },
     };
 }
+>>>>>>> Conflict 1 of 1 ends

@@ -11,7 +11,7 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
     });
 
-    var macro_list = std.ArrayList(MacroPair){};
+    var macro_list = try std.ArrayList(MacroPair).initCapacity(b.allocator, 0);
     defer macro_list.deinit(b.allocator);
     {
         try macro_list.append(b.allocator, .{
@@ -202,7 +202,7 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
     });
 
-    // Create a static library
+    // Create a static library using the module
     const bearssl = b.addLibrary(.{
         .name = "bearssl",
         .root_module = bearssl_mod,

@@ -95,6 +95,15 @@ pub const BearSSL = struct {
     x509: ?c.br_x509_certificate,
     pkey: ?PrivateKey,
     cert_signer_algo: ?c_int,
+    // Client verification / trust
+    trust_anchors: std.ArrayListUnmanaged(c.br_x509_trust_anchor) = .{},
+    owned_anchors: std.ArrayListUnmanaged(OwnedAnchor) = .{},
+    sni_server_name: ?[]u8 = null,
+
+    const OwnedAnchor = union(enum) {
+        rsa: struct { dn: []u8, n: []u8, e: []u8 },
+        ec: struct { dn: []u8, q: []u8 },
+    };
 
     pub fn init(allocator: std.mem.Allocator) BearSSL {
         return .{
@@ -102,10 +111,13 @@ pub const BearSSL = struct {
             .x509 = null,
             .pkey = null,
             .cert_signer_algo = null,
+            .trust_anchors = .{},
+            .owned_anchors = .{},
+            .sni_server_name = null,
         };
     }
 
-    pub fn deinit(self: BearSSL) void {
+    pub fn deinit(self: *BearSSL) void {
         if (self.x509) |x509| self.allocator.free(x509.data[0..x509.data_len]);
 
         if (self.pkey) |pkey| switch (pkey) {
@@ -120,6 +132,22 @@ pub const BearSSL = struct {
                 self.allocator.free(inner.x[0..inner.xlen]);
             },
         };
+
+        // free trust anchors
+        for (self.owned_anchors.items) |owned| switch (owned) {
+            .rsa => |inner| {
+                self.allocator.free(inner.dn);
+                self.allocator.free(inner.n);
+                self.allocator.free(inner.e);
+            },
+            .ec => |inner| {
+                self.allocator.free(inner.dn);
+                self.allocator.free(inner.q);
+            },
+        };
+        self.trust_anchors.deinit(self.allocator);
+        self.owned_anchors.deinit(self.allocator);
+        if (self.sni_server_name) |sni| self.allocator.free(sni);
     }
 
     /// This takes in the PEM section and the given bytes and decodes it into a byte format
@@ -252,9 +280,93 @@ pub const BearSSL = struct {
         self.cert_signer_algo = get_cert_signer_algo(&self.x509.?);
     }
 
+    /// Add a single trust anchor from a DER-encoded certificate (CA or leaf).
+    pub fn add_trust_anchor_der(self: *BearSSL, der: []const u8) !void {
+        var dn_buf = std.ArrayListUnmanaged(u8){};
+        defer dn_buf.deinit(self.allocator);
+
+        // Collect subject DN while decoding cert
+        var xdc: c.br_x509_decoder_context = undefined;
+        c.br_x509_decoder_init(&xdc, struct {
+            fn append_dn(ctx: ?*anyopaque, buf: ?*const anyopaque, len: usize) callconv(.c) void {
+                var list: *std.ArrayListUnmanaged(u8) = @ptrCast(@alignCast(ctx.?));
+                const src = @as([*c]const u8, @ptrCast(buf.?))[0..len];
+                list.appendSliceAssumeCapacity(src);
+            }
+        }.append_dn, &dn_buf);
+
+        try dn_buf.ensureTotalCapacity(self.allocator, der.len);
+        c.br_x509_decoder_push(&xdc, der.ptr, der.len);
+        if (c.br_x509_decoder_last_error(&xdc) != 0) return error.X509DecodeFailed;
+
+        const pkey_ptr = c.br_x509_decoder_get_pkey(&xdc);
+        if (pkey_ptr == null) return error.X509NoPublicKey;
+        const pkey = pkey_ptr.*;
+
+        const is_ca: bool = (c.br_x509_decoder_isCA(&xdc) != 0);
+
+        var anchor: c.br_x509_trust_anchor = undefined;
+        var owned: OwnedAnchor = undefined;
+
+        const dn = try dn_buf.toOwnedSlice(self.allocator);
+        errdefer self.allocator.free(dn);
+        anchor.dn = .{ .data = dn.ptr, .len = dn.len };
+        anchor.flags = if (is_ca) c.BR_X509_TA_CA else 0;
+
+        switch (pkey.key_type) {
+            c.BR_KEYTYPE_RSA => {
+                // Copy RSA components
+                const n = try self.allocator.dupe(u8, pkey.key.rsa.n[0..pkey.key.rsa.nlen]);
+                errdefer self.allocator.free(n);
+                const e = try self.allocator.dupe(u8, pkey.key.rsa.e[0..pkey.key.rsa.elen]);
+                errdefer self.allocator.free(e);
+
+                anchor.pkey.key_type = c.BR_KEYTYPE_RSA;
+                anchor.pkey.key.rsa = .{
+                    .n = n.ptr,
+                    .nlen = pkey.key.rsa.nlen,
+                    .e = e.ptr,
+                    .elen = pkey.key.rsa.elen,
+                };
+
+                owned = .{ .rsa = .{ .dn = dn, .n = n, .e = e } };
+            },
+            c.BR_KEYTYPE_EC => {
+                const q = try self.allocator.dupe(u8, pkey.key.ec.q[0..pkey.key.ec.qlen]);
+                errdefer self.allocator.free(q);
+
+                anchor.pkey.key_type = c.BR_KEYTYPE_EC;
+                anchor.pkey.key.ec = .{
+                    .curve = pkey.key.ec.curve,
+                    .q = q.ptr,
+                    .qlen = pkey.key.ec.qlen,
+                };
+
+                owned = .{ .ec = .{ .dn = dn, .q = q } };
+            },
+            else => return error.UnsupportedKeyType,
+        }
+
+        try self.trust_anchors.append(self.allocator, anchor);
+        try self.owned_anchors.append(self.allocator, owned);
+    }
+
+    /// Decode a PEM certificate and add as trust anchor.
+    pub fn add_trust_anchor_pem(self: *BearSSL, section_title: ?[]const u8, pem_bytes: []const u8) !void {
+        const der = try decode_pem(self.allocator, section_title orelse "CERTIFICATE", pem_bytes);
+        defer self.allocator.free(der);
+        try self.add_trust_anchor_der(der);
+    }
+
+    /// Set SNI server name for client connections.
+    pub fn set_sni(self: *BearSSL, name: []const u8) !void {
+        if (self.sni_server_name) |old| self.allocator.free(old);
+        self.sni_server_name = try self.allocator.dupe(u8, name);
+    }
+
     pub fn to_secure_socket(self: *BearSSL, socket: Socket, mode: SecureSocket.Mode) !SecureSocket {
         switch (mode) {
-            .client => @panic("Client TLS not supported yet!"),
+            .client => return @import("client.zig").to_secure_socket_client(self, socket),
             .server => return @import("server.zig").to_secure_socket_server(self, socket),
         }
     }
